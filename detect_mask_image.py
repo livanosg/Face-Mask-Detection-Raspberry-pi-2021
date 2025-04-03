@@ -48,18 +48,20 @@ for i in range(0, detections.shape[2]):
 		(startX, startY) = (max(0, startX), max(0, startY))
 		(endX, endY) = (min(w - 1, endX), min(h - 1, endY))
 		face = image[startY:endY, startX:endX]
-		face = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
-		face = cv2.resize(face, (224, 224))
-		face = img_to_array(face)
-		face = preprocess_input(face)
-		face = np.expand_dims(face, axis=0)
-		(mask, withoutMask) = model.predict(face)[0]
 
-		label = "Mask" if mask > withoutMask else "No Mask"
-		color = (0, 255, 0) if label == "Mask" else (0, 0, 255)
-		label = "{}: {:.2f}%".format(label, max(mask, withoutMask) * 100)
-		cv2.putText(image, label, (startX, startY - 10),
-			cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 2)
-		cv2.rectangle(image, (startX, startY), (endX, endY), color, 2)
+		if face.shape[0] != 0  and face.shape[1] != 0:
+			face = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
+			face = cv2.resize(face, (224, 224))
+			face = img_to_array(face)
+			face = preprocess_input(face)
+			face = np.expand_dims(face, axis=0)
+			(mask, withoutMask) = model.predict(face)[0]
+
+			label = "Mask" if mask > withoutMask else "No Mask"
+			label = "{}: {:.2f}%".format(label, max(mask, withoutMask) * 100)
+			color = (0, 255, 0) if label == "Mask" else (0, 0, 255)
+			cv2.putText(image, label, (startX, startY - 10),
+				cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 2)
+			cv2.rectangle(image, (startX, startY), (endX, endY), color, 2)
 cv2.imshow("Output", image)
 cv2.waitKey(0)

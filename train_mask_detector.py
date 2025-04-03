@@ -1,20 +1,14 @@
 # USAGE
 # python train_mask_detector.py --dataset dataset
-
+import keras.src.callbacks
 # import the necessary packages
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.applications import MobileNetV2
-from tensorflow.keras.layers import AveragePooling2D
-from tensorflow.keras.layers import Dropout
-from tensorflow.keras.layers import Flatten
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.layers import Input
-from tensorflow.keras.models import Model
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
-from tensorflow.keras.preprocessing.image import img_to_array
-from tensorflow.keras.preprocessing.image import load_img
-from tensorflow.keras.utils import to_categorical
+from keras.src.models import Model
+from keras.src.optimizers import Adam
+
+from keras.src.legacy.preprocessing.image import ImageDataGenerator
+from keras.src.utils import to_categorical, load_img, img_to_array
+from keras.src.layers import AveragePooling2D, Dropout, Flatten, Dense, Input
+from keras.src.applications.mobilenet_v2 import MobileNetV2, preprocess_input
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
@@ -27,12 +21,13 @@ import os
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
 ap.add_argument("-d", "--dataset", required=True,
-	help="path to input dataset")
-ap.add_argument("-p", "--plot", type=str, default="plot.png",
+				help="path to input dataset")
+ap.add_argument("-p", "--plot", type=str,
+				default="plot.png",
 	help="path to output loss/accuracy plot")
 ap.add_argument("-m", "--model", type=str,
-	default="mask_detector.model",
-	help="path to output face mask detector model")
+				default="mask_detector.keras",
+				help="path to output face mask detector model")
 args = vars(ap.parse_args())
 
 # initialize the initial learning rate, number of epochs to train for,
@@ -63,9 +58,12 @@ for imagePath in imagePaths:
 	labels.append(label)
 
 # convert the data and labels to NumPy arrays
+print(len(data))
+print(len(labels))
 data = np.array(data, dtype="float32")
 labels = np.array(labels)
-
+print(data.shape)
+print(labels.shape)
 # perform one-hot encoding on the labels
 lb = LabelBinarizer()
 labels = lb.fit_transform(labels)
@@ -109,9 +107,12 @@ model = Model(inputs=baseModel.input, outputs=headModel)
 for layer in baseModel.layers:
 	layer.trainable = False
 
+def lr_sched(epoch):
+	return INIT_LR / (epoch + 1)
+
 # compile our model
 print("[INFO] compiling model...")
-opt = Adam(lr=INIT_LR, decay=INIT_LR / EPOCHS)
+opt = Adam(learning_rate=INIT_LR)
 model.compile(loss="binary_crossentropy", optimizer=opt,
 	metrics=["accuracy"])
 
@@ -122,7 +123,8 @@ H = model.fit(
 	steps_per_epoch=len(trainX) // BS,
 	validation_data=(testX, testY),
 	validation_steps=len(testX) // BS,
-	epochs=EPOCHS)
+	epochs=EPOCHS,
+	callbacks=[keras.src.callbacks.LearningRateScheduler(lr_sched)])
 
 # make predictions on the testing set
 print("[INFO] evaluating network...")
@@ -138,7 +140,7 @@ print(classification_report(testY.argmax(axis=1), predIdxs,
 
 # serialize the model to disk
 print("[INFO] saving mask detector model...")
-model.save(args["model"], save_format="h5")
+model.save(args["model"])
 
 # plot the training loss and accuracy
 N = EPOCHS

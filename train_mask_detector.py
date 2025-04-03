@@ -86,7 +86,7 @@ aug = ImageDataGenerator(
 
 # load the MobileNetV2 network, ensuring the head FC layer sets are
 # left off
-baseModel = MobileNetV2(weights="imagenet", include_top=False,
+baseModel = MobileNetV2(input_shape=(224, 224, 3), weights="imagenet", include_top=False,
 	input_tensor=Input(shape=(224, 224, 3)))
 
 # construct the head of the model that will be placed on top of the
@@ -100,7 +100,7 @@ headModel = Dense(2, activation="softmax")(headModel)
 
 # place the head FC model on top of the base model (this will become
 # the actual model we will train)
-model = Model(inputs=baseModel.input, outputs=headModel)
+model = Model(inputs={'keras_tensor': baseModel.input}, outputs=headModel)
 
 # loop over all layers in the base model and freeze them so they will
 # *not* be updated during the first training process
